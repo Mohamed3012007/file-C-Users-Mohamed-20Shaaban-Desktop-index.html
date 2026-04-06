@@ -1,36 +1,90 @@
-:root {
-    --primary-green: #27ae60; --dark-bg: #2c3e50; --light-gray: #f4f7f6;
-    --card-white: #ffffff; --text-main: #2c3e50; 
+:root { 
+    --primary: #27ae60; 
+    --dark: #2c3e50; 
+    --bg: #f0f2f5; 
+    --card: #ffffff; 
+    --text: #333; 
+    --accent: #e67e22;
 }
-[data-theme="dark"] {
-    --light-gray: #1a1a1a; --card-white: #2d2d2d; --text-main: #e0e0e0; --dark-bg: #000000;
+
+[data-theme="dark"] { 
+    --bg: #121212; 
+    --card: #1e1e1e; 
+    --text: #f1f1f1; 
+    --dark: #000; 
 }
 
-body { margin: 0; font-family: 'Cairo', sans-serif; direction: rtl; background: var(--light-gray); transition: 0.3s; }
-
-/* قفل الشاشة والتشويش */
-.locked { filter: blur(15px); pointer-events: none; opacity: 0.3; }
-
-/* المربع المركزي المطور */
-.login-overlay {
-    position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%);
-    z-index: 999; text-align: center; background: var(--card-white);
-    padding: 50px 30px; border-radius: 30px; 
-    box-shadow: 0 25px 60px rgba(0,0,0,0.4); 
-    width: 90%; max-width: 450px; border-bottom: 8px solid var(--primary-green);
+body { 
+    margin: 0; 
+    direction: rtl; 
+    font-family: 'Segoe UI', Tahoma, sans-serif; 
+    background: var(--bg); 
+    color: var(--text); 
+    transition: 0.3s; 
 }
-.lock-icon-box { color: var(--primary-green); margin-bottom: 20px; }
-.login-overlay h2 { margin: 10px 0; font-size: 1.6rem; }
-.login-overlay p { color: #666; font-size: 0.95rem; line-height: 1.6; }
 
-/* الهيدر وتنسيق المستخدم */
-.main-header { background: var(--dark-bg); color: white; padding: 10px 5%; display: flex; justify-content: space-between; align-items: center; }
-.user-profile { display: flex; align-items: center; gap: 12px; background: rgba(255,255,255,0.15); padding: 5px 15px; border-radius: 50px; }
-#userImg { width: 35px; height: 35px; border-radius: 50%; border: 2px solid var(--primary-green); }
+/* Header */
+.main-header { 
+    display: flex; 
+    justify-content: space-between; 
+    align-items: center; 
+    padding: 15px 20px; 
+    background: var(--dark); 
+    color: white; 
+}
 
-/* البطاقات والحساسات */
-.dashboard-grid { padding: 25px; display: grid; grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); gap: 25px; }
-.card { background: var(--card-white); padding: 25px; border-radius: 20px; box-shadow: 0 4px 15px rgba(0,0,0,0.05); color: var(--text-main); }
-.wide { grid-column: 1 / -1; }
-.s-card { background: rgba(0,0,0,0.03); padding: 20px; border-radius: 15px; text-align: center; font-weight: bold; }
-.theme-toggle-btn { background: #eee; border: none; width: 40px; height: 40px; border-radius: 50%; cursor: pointer; }
+.header-right { display: flex; align-items: center; gap: 15px; }
+.burger-btn { background: none; border: none; color: white; font-size: 1.5rem; cursor: pointer; }
+
+.google-account-chip { 
+    display: flex; 
+    align-items: center; 
+    gap: 10px; 
+    background: rgba(255,255,255,0.1); 
+    padding: 5px 15px; 
+    border-radius: 20px; 
+    cursor: pointer;
+    border: 1px solid rgba(255,255,255,0.2);
+}
+
+/* Side Nav */
+.side-nav { 
+    position: fixed; top: 0; right: -300px; width: 280px; height: 100%; 
+    background: var(--dark); color: white; transition: 0.4s; z-index: 2000; padding: 20px; 
+}
+.side-nav.open { right: 0; }
+.close-btn { font-size: 2rem; background: none; border: none; color: white; cursor: pointer; }
+
+.menu-section { margin-top: 25px; }
+.menu-section h4 { color: #888; font-size: 0.8rem; border-bottom: 1px solid #444; padding-bottom: 5px; }
+.menu-section button { 
+    width: 100%; padding: 12px; margin-top: 10px; border: none; 
+    background: #34495e; color: white; border-radius: 8px; cursor: pointer; text-align: right; 
+}
+
+/* Grid & Cards */
+.container { padding: 20px; display: grid; gap: 20px; max-width: 1000px; margin: auto; }
+.card { background: var(--card); padding: 20px; border-radius: 15px; box-shadow: 0 4px 10px rgba(0,0,0,0.1); }
+
+.sensors-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 15px; margin-top: 15px; }
+@media (min-width: 600px) { .sensors-grid { grid-template-columns: repeat(4, 1fr); } }
+
+.s-item { background: rgba(0,0,0,0.03); padding: 15px; border-radius: 10px; text-align: center; border-bottom: 3px solid var(--primary); }
+.s-item span { font-size: 1.5rem; font-weight: bold; color: var(--primary); }
+
+/* Controls */
+.mode-toggle-btn { 
+    width: 100%; padding: 15px; border-radius: 30px; border: 2px solid var(--primary); 
+    background: none; color: var(--text); cursor: pointer; font-weight: bold; margin: 15px 0;
+}
+.mode-toggle-btn.auto { background: var(--primary); color: white; }
+
+.manual-controls { display: flex; gap: 10px; }
+.ctrl-btn { flex: 1; padding: 15px; border-radius: 10px; border: none; background: #ddd; cursor: pointer; font-weight: bold; }
+.btn-on { background: var(--accent) !important; color: white; }
+
+/* Weather */
+.weather-section { background: var(--dark); color: white; padding: 20px; text-align: center; }
+.search-box input { padding: 10px; border-radius: 5px; border: none; width: 50%; }
+
+.analysis-box { margin-top: 10px; padding: 15px; background: rgba(0,0,0,0.05); border-radius: 8px; border-right: 5px solid var(--primary); }
