@@ -1,121 +1,167 @@
-let currentIP = "";
-let sensorData = { ph: 7.0, moisture: 50, rain: 0 };
-const GOOGLE_CLIENT_ID = "YOUR_CLIENT_ID_HERE.apps.googleusercontent.com"; // ضع كود جوجل هنا
+// المتغيرات العامة
+let isAuto = false;
+let isLoggedIn = false;
+const API_KEY = "bd5e378503939dbaee5720a28305d1aa";
+let serialPort, bluetoothDevice;
 
-// قاعدة بيانات الـ 100 نبتة (أشهر أنواع النباتات في مصر)
+// قائمة الـ 100 نبتة
 const plants = [
-    { n: "طماطم بلدي", phL: 5.5, phH: 7.0, m: 70 }, { n: "خيار صوبة", phL: 5.8, phH: 7.2, m: 75 },
-    { n: "فلفل ألوان", phL: 6.0, phH: 7.0, m: 65 }, { n: "باذنجان رومي", phL: 5.5, phH: 6.8, m: 70 },
-    { n: "بامية صعيدي", phL: 6.0, phH: 7.5, m: 60 }, { n: "ملوخية مصري", phL: 6.0, phH: 7.0, m: 80 },
-    { n: "قمح جيزة", phL: 6.0, phH: 7.5, m: 50 }, { n: "أرز عريض", phL: 5.0, phH: 6.5, m: 90 },
-    { n: "قطن طويل التيلة", phL: 6.5, phH: 8.0, m: 55 }, { n: "قصب سكر", phL: 6.0, phH: 8.0, m: 80 },
-    { n: "مانجو عويس", phL: 5.5, phH: 7.5, m: 60 }, { n: "نخيل حياني", phL: 6.5, phH: 8.5, m: 45 },
-    { n: "برسيم حجازي", phL: 6.5, phH: 7.5, m: 75 }, { n: "بطاطس سبونتا", phL: 4.8, phH: 6.5, m: 70 },
-    { n: "بصل أحمر", phL: 6.0, phH: 7.0, m: 60 }, { n: "ثوم صيني", phL: 6.0, phH: 7.5, m: 60 },
-    { n: "فراولة", phL: 5.5, phH: 6.5, m: 75 }, { n: "ليمون اضاليا", phL: 6.0, phH: 7.5, m: 65 },
-    { n: "نعناع", phL: 6.5, phH: 7.5, m: 80 }, { n: "ريحان عطري", phL: 6.0, phH: 7.5, m: 60 },
-    { n: "خس كابوتشا", phL: 6.0, phH: 7.0, m: 80 }, { n: "جزر بلدي", phL: 5.5, phH: 7.0, m: 70 },
-    { n: "كرنب", phL: 6.5, phH: 7.5, m: 80 }, { n: "قرنبيط", phL: 6.5, phH: 7.5, m: 80 }
-    // يمكنك إضافة الـ 100 نبتة كاملة هنا بنفس النمط
+    { n: "طماطم", t: [20, 30], ph: [5.5, 7.0] }, { n: "خيار", t: [22, 32], ph: [6.0, 7.5] },
+    { n: "فلفل", t: [20, 28], ph: [6.0, 7.0] }, { n: "باذنجان", t: [24, 32], ph: [5.5, 6.5] },
+    { n: "خس", t: [15, 22], ph: [6.0, 7.0] }, { n: "جرجير", t: [10, 25], ph: [6.5, 7.5] },
+    { n: "فراولة", t: [18, 25], ph: [5.5, 6.5] }, { n: "نعناع", t: [15, 30], ph: [6.0, 7.5] },
+    { n: "بطاطس", t: [15, 20], ph: [4.8, 6.0] }, { n: "جزر", t: [15, 21], ph: [5.5, 7.0] },
+    { n: "بصل", t: [12, 25], ph: [6.0, 7.5] }, { n: "ثوم", t: [10, 24], ph: [6.0, 7.0] },
+    { n: "سبانخ", t: [10, 20], ph: [6.5, 7.5] }, { n: "بقدونس", t: [15, 25], ph: [6.0, 7.0] },
+    { n: "كزبرة", t: [15, 22], ph: [6.5, 7.5] }, { n: "ريحان", t: [20, 35], ph: [5.5, 6.5] },
+    { n: "فاصوليا", t: [18, 28], ph: [6.0, 7.0] }, { n: "بازلاء", t: [13, 18], ph: [6.0, 7.5] },
+    { n: "ذرة", t: [18, 30], ph: [5.8, 7.0] }, { n: "قمح", t: [10, 25], ph: [6.0, 7.0] },
+    { n: "أرز", t: [20, 35], ph: [5.0, 6.5] }, { n: "قطن", t: [25, 35], ph: [5.5, 7.5] },
+    { n: "عباد الشمس", t: [20, 30], ph: [6.0, 7.5] }, { n: "فول سوداني", t: [22, 30], ph: [5.8, 6.2] },
+    { n: "كرنب", t: [15, 20], ph: [6.5, 7.5] }, { n: "قرنبيط", t: [15, 20], ph: [6.0, 7.0] },
+    { n: "بروكلي", t: [13, 20], ph: [6.0, 7.0] }, { n: "فجل", t: [10, 20], ph: [6.0, 7.0] },
+    { n: "لفت", t: [10, 20], ph: [5.5, 7.0] }, { n: "بنجر", t: [15, 21], ph: [6.0, 7.5] },
+    { n: "كوسة", t: [18, 30], ph: [6.0, 7.5] }, { n: "بطيخ", t: [22, 35], ph: [6.0, 7.0] },
+    { n: "شمام", t: [22, 32], ph: [6.0, 7.0] }, { n: "عنب", t: [15, 30], ph: [5.5, 7.0] },
+    { n: "تين", t: [20, 35], ph: [6.0, 7.5] }, { n: "زيتون", t: [15, 30], ph: [6.5, 8.5] },
+    { n: "رمان", t: [20, 35], ph: [5.5, 7.0] }, { n: "ليمون", t: [15, 30], ph: [5.5, 6.5] },
+    { n: "برتقال", t: [15, 30], ph: [6.0, 7.0] }, { n: "مانجو", t: [24, 30], ph: [5.5, 7.5] },
+    { n: "موز", t: [26, 30], ph: [5.5, 6.5] }, { n: "نخيل", t: [20, 40], ph: [6.0, 8.0] },
+    { n: "صبار", t: [15, 45], ph: [5.0, 6.5] }, { n: "ياسمين", t: [15, 30], ph: [6.0, 7.0] },
+    { n: "ورد بلدي", t: [15, 25], ph: [6.0, 7.0] }, { n: "توليب", t: [5, 15], ph: [6.0, 7.0] },
+    { n: "أوركيد", t: [18, 25], ph: [5.5, 6.5] }, { n: "قرنفل", t: [10, 20], ph: [6.0, 7.0] },
+    { n: "لافندر", t: [15, 30], ph: [6.5, 8.0] }, { n: "زعتر", t: [15, 25], ph: [6.0, 8.0] },
+    { n: "روزماري", t: [15, 25], ph: [6.0, 7.5] }, { n: "مرمية", t: [15, 25], ph: [6.0, 7.0] },
+    { n: "زعفران", t: [10, 20], ph: [6.0, 8.0] }, { n: "كمون", t: [20, 30], ph: [6.5, 7.5] },
+    { n: "يانسون", t: [15, 25], ph: [6.0, 7.5] }, { n: "شمر", t: [15, 25], ph: [6.0, 7.0] },
+    { n: "حلبة", t: [10, 25], ph: [6.0, 7.5] }, { n: "ترمس", t: [10, 20], ph: [6.0, 7.5] },
+    { n: "عدس", t: [15, 25], ph: [6.0, 7.5] }, { n: "حمص", t: [15, 25], ph: [6.0, 7.0] },
+    { n: "كرفس", t: [15, 21], ph: [6.0, 7.0] }, { n: "كرات", t: [15, 25], ph: [6.0, 7.0] },
+    { n: "فجل أحمر", t: [10, 20], ph: [6.0, 7.0] }, { n: "خرشوف", t: [15, 24], ph: [6.5, 7.5] }, 
+    { n: "هليون", t: [15, 25], ph: [6.5, 7.5] }, { n: "زنجبيل", t: [20, 30], ph: [5.5, 6.5] }, 
+    { n: "كركم", t: [20, 30], ph: [5.5, 6.5] }, { n: "قرفة", t: [25, 30], ph: [4.5, 5.5] }, 
+    { n: "كاكاو", t: [20, 30], ph: [5.0, 6.5] }, { n: "بن", t: [15, 25], ph: [5.0, 6.0] }, 
+    { n: "شاي", t: [13, 30], ph: [4.5, 5.5] }, { n: "تبغ", t: [20, 30], ph: [5.5, 6.5] }, 
+    { n: "قصب سكر", t: [20, 35], ph: [5.5, 6.5] }, { n: "بنجر سكر", t: [15, 25], ph: [6.0, 8.0] }, 
+    { n: "كاجو", t: [20, 30], ph: [5.0, 6.5] }, { n: "لوز", t: [15, 30], ph: [7.0, 8.5] }, 
+    { n: "فستق", t: [15, 35], ph: [7.0, 8.0] }, { n: "بندق", t: [12, 20], ph: [6.0, 7.0] }, 
+    { n: "جوز", t: [10, 25], ph: [6.0, 7.5] }, { n: "توت", t: [15, 25], ph: [5.5, 6.5] }, 
+    { n: "مشمش", t: [15, 30], ph: [6.0, 8.0] }, { n: "خوخ", t: [15, 25], ph: [6.0, 7.0] }, 
+    { n: "برقوق", t: [15, 25], ph: [6.0, 7.5] }, { n: "كرز", t: [10, 20], ph: [6.0, 7.5] }, 
+    { n: "تفاح", t: [10, 25], ph: [6.0, 7.5] }, { n: "كمثرى", t: [10, 25], ph: [6.0, 7.5] }, 
+    { n: "سفرجل", t: [15, 25], ph: [6.0, 7.5] }, { n: "جوافة", t: [20, 30], ph: [5.0, 7.0] }, 
+    { n: "قشطة", t: [20, 30], ph: [5.5, 6.5] }, { n: "أفوكادو", t: [15, 25], ph: [6.0, 7.0] }, 
+    { n: "بابايا", t: [20, 30], ph: [5.5, 6.5] }, { n: "أناناس", t: [20, 30], ph: [4.5, 5.5] }, 
+    { n: "جوز هند", t: [20, 35], ph: [5.0, 7.0] }, { n: "كيوي", t: [15, 25], ph: [5.5, 6.5] }, 
+    { n: "باشن فروت", t: [20, 30], ph: [5.5, 6.5] }, { n: "قلقاس", t: [20, 30], ph: [5.5, 6.5] }, 
+    { n: "بطاطا حلوة", t: [20, 30], ph: [5.5, 6.5] }, { n: "كرنب بروكسل", t: [15, 20], ph: [6.5, 7.5] }, 
+    { n: "كالي", t: [10, 20], ph: [6.5, 7.5] }
 ];
 
+// تشغيل النظام عند التحميل
 window.onload = () => {
-    // تهيئة زر جوجل داخل المربع
-    google.accounts.id.initialize({ client_id: GOOGLE_CLIENT_ID, callback: handleGoogleLogin });
-    google.accounts.id.renderButton(document.getElementById("googleBtn"), { theme: "filled_blue", size: "large", shape: "pill" });
-
-    // فحص الجلسة السابقة
-    const savedUser = localStorage.getItem("userData");
-    if (savedUser) applyLoginUI(JSON.parse(savedUser));
-
-    // ملء قائمة النباتات
-    const sel = document.getElementById('plantSelect');
-    plants.sort((a,b) => a.n.localeCompare(b.n)).forEach(p => {
-        let opt = document.createElement('option');
-        opt.value = JSON.stringify(p); opt.innerText = p.n; sel.appendChild(opt);
-    });
-
-    // تحديث الساعة
-    setInterval(() => { document.getElementById('liveClock').innerText = new Date().toLocaleTimeString('ar-EG'); }, 1000);
+    populatePlants();
+    setInterval(updateClock, 1000);
+    getUserLocation();
 };
 
-function handleGoogleLogin(res) {
-    const payload = JSON.parse(atob(res.credential.split('.')[1]));
-    localStorage.setItem("userData", JSON.stringify(payload));
-    applyLoginUI(payload);
+function populatePlants() {
+    const sel = document.getElementById('plantSelector');
+    plants.forEach((p, index) => {
+        let o = document.createElement('option');
+        o.value = index; o.innerText = p.n;
+        sel.appendChild(o);
+    });
 }
 
-function applyLoginUI(user) {
-    document.getElementById("loginAlert").style.display = "none";
-    document.getElementById("mainDashboard").classList.remove("locked");
-    document.getElementById("userProfile").style.display = "flex";
-    document.getElementById("userName").innerText = user.name;
-    document.getElementById("userImg").src = user.picture;
+function updateClock() {
+    const now = new Date();
+    document.getElementById('headerDate').innerText = now.toLocaleDateString('ar-EG');
+    document.getElementById('headerTime').innerText = now.toLocaleTimeString('ar-EG');
+}
 
-    // استرجاع الـ IP المرتبط بالحساب من الذاكرة المحلية
-    const cloudIp = localStorage.getItem(`cloud_ip_${user.email}`);
-    if (cloudIp) {
-        currentIP = cloudIp;
-        updateIPStatus(cloudIp);
-        setInterval(pullData, 4000);
+// --- دوال الاتصال (بلوتوث، سيريال، واي فاي) ---
+async function connect(type) {
+    toggleMenu();
+    try {
+        if (type === 'Serial') {
+            if ("serial" in navigator) {
+                serialPort = await navigator.serial.requestPort();
+                await serialPort.open({ baudRate: 9600 });
+                readSerialData();
+                alert("تم الاتصال بالكابل");
+            } else alert("المتصفح لا يدعم Serial");
+        } 
+        else if (type === 'Bluetooth') {
+            bluetoothDevice = await navigator.bluetooth.requestDevice({ acceptAllDevices: true });
+            await bluetoothDevice.gatt.connect();
+            alert("تم الاتصال ببلوتوث: " + bluetoothDevice.name);
+        }
+        else if (type === 'IP') {
+            let ip = prompt("أدخل عنوان IP الجهاز:");
+            if(ip) fetch(`http://${ip}/data`).then(r => r.json()).then(d => updateUI(d));
+        }
+    } catch (e) { console.log("اتصال ملغي"); }
+}
+
+async function readSerialData() {
+    const reader = serialPort.readable.getReader();
+    while (true) {
+        const { value, done } = await reader.read();
+        if (done) break;
+        const data = new TextDecoder().decode(value).split(',');
+        if(data.length >= 4) updateUI(data);
     }
 }
 
-function saveESPConfig() {
-    const ipInput = document.getElementById('espIP').value;
-    const user = JSON.parse(localStorage.getItem("userData"));
-    if(ipInput && user) {
-        currentIP = ipInput;
-        localStorage.setItem(`cloud_ip_${user.email}`, ipInput);
-        updateIPStatus(ipInput);
-        toggleSettingsPage();
-        setInterval(pullData, 4000);
+function updateUI(d) {
+    document.getElementById('temp').innerText = d[0];
+    document.getElementById('hum').innerText = d[1];
+    document.getElementById('ph').innerText = d[2];
+    document.getElementById('water').innerText = d[3];
+}
+
+// --- دوال جوجل (اختيارية) ---
+function googleSignIn() {
+    isLoggedIn = !isLoggedIn;
+    document.getElementById('userStatus').innerText = isLoggedIn ? "محمد" : "زائر";
+    document.getElementById('menuUserStatus').innerText = isLoggedIn ? "خروج" : "تسجيل الدخول";
+    if(isLoggedIn) alert("مرحباً بك! تم تفعيل المزامنة السحابية اختيارياً.");
+}
+
+// --- دوال التحكم والطقس ---
+function toggleMenu() { document.getElementById('sideMenu').classList.toggle('open'); }
+
+function toggleSystemMode() {
+    isAuto = !isAuto;
+    const btn = document.getElementById('systemModeBtn');
+    btn.className = isAuto ? "mode-toggle-btn auto" : "mode-toggle-btn manual";
+    document.getElementById('modeText').innerText = isAuto ? "أوتوماتيك" : "يدوي";
+    document.getElementById('manualControls').style.opacity = isAuto ? "0.3" : "1";
+}
+
+function toggleDevice(id) {
+    if(isAuto) return;
+    document.getElementById(id + 'Btn').classList.toggle('btn-on');
+}
+
+function updatePlantAnalysis() {
+    const p = plants[document.getElementById('plantSelector').value];
+    document.getElementById('plantAnalysis').innerHTML = `<b>${p.n}</b><br>حرارة: ${p.t[0]}-${p.t[1]}° | الحموضة: ${p.ph[0]}-${p.ph[1]}`;
+}
+
+function getUserLocation() {
+    if (navigator.geolocation) {
+        navigator.geolocation.getCurrentPosition(p => {
+            fetch(`https://api.openweathermap.org/data/2.5/weather?lat=${p.coords.latitude}&lon=${p.coords.longitude}&units=metric&lang=ar&appid=${API_KEY}`)
+            .then(r => r.json()).then(d => {
+                document.getElementById('weatherDisplay').innerText = `${d.name}: ${Math.round(d.main.temp)}°م - ${d.weather[0].description}`;
+            });
+        });
     }
 }
-
-function updateIPStatus(ip) {
-    document.getElementById('ipStatus').innerText = "متصل سحابياً: " + ip;
-    document.getElementById('ipStatus').className = "status-tag online";
-    document.getElementById('savedIpTag').innerText = "IP: " + ip;
-}
-
-function logout() { localStorage.removeItem("userData"); location.reload(); }
 
 function toggleDarkMode() {
-    const theme = document.documentElement.getAttribute("data-theme") === "dark" ? "light" : "dark";
-    document.documentElement.setAttribute("data-theme", theme);
-    localStorage.setItem("theme", theme);
-}
-
-async function pullData() {
-    if(!currentIP) return;
-    try {
-        const res = await fetch(`http://${currentIP}/status`);
-        const data = await res.json();
-        document.getElementById('phVal').innerText = data.ph;
-        document.getElementById('moistVal').innerText = data.moisture;
-        sensorData = data;
-    } catch(e) {}
-}
-
-function runLiveAnalysis() {
-    const sel = document.getElementById('plantSelect');
-    if(!sel.value) return;
-    const p = JSON.parse(sel.value);
-    const phOk = (sensorData.ph >= p.phL && sensorData.ph <= p.phH);
-    const mOk = (sensorData.moisture >= p.m);
-    document.getElementById('analysisResult').innerHTML = `<strong>تحليل ${p.n}:</strong><br>
-        - pH: ${phOk?'مثالي ✅':'غير مناسب ❌'} (${p.phL}-${p.phH})<br>
-        - رطوبة: ${mOk?'كافية ✅':'تحتاج ري 💧'} (${p.m}%)`;
-}
-
-function toggleSettingsPage() {
-    const p = document.getElementById('ipSettingsPage');
-    p.style.display = (p.style.display === 'flex') ? 'none' : 'flex';
-}
-
-function sendCmd(device) {
-    if(!currentIP) return;
-    const state = document.getElementById('sw'+device.charAt(0).toUpperCase()+device.slice(1)).checked ? 'ON' : 'OFF';
-    fetch(`http://${currentIP}/control?device=${device}&state=${state}`);
+    const b = document.body;
+    b.setAttribute('data-theme', b.getAttribute('data-theme') === 'dark' ? 'light' : 'dark');
 }
