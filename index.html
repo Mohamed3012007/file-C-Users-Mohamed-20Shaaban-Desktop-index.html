@@ -1,87 +1,167 @@
-<!DOCTYPE html>
-<html lang="ar" dir="rtl">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Smart Farm Pro | نظام المزرعة الذكي</title>
-    <script src="https://accounts.google.com/gsi/client" async defer></script>
-    <link rel="stylesheet" href="style.css">
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-</head>
-<body>
+// المتغيرات العامة
+let isAuto = false;
+let isLoggedIn = false;
+const API_KEY = "bd5e378503939dbaee5720a28305d1aa";
+let serialPort, bluetoothDevice;
 
-    <div id="ipSettingsPage" class="full-page-overlay">
-        <div class="settings-card">
-            <button class="close-btn" onclick="toggleSettingsPage()">×</button>
-            <h2><i class="fas fa-network-wired"></i> إعدادات الربط السحابي</h2>
-            <input type="text" id="espIP" placeholder="أدخل IP الجهاز (ESP32)">
-            <button class="btn-confirm" onclick="saveESPConfig()">حفظ وربط بالحساب</button>
-        </div>
-    </div>
+// قائمة الـ 100 نبتة
+const plants = [
+    { n: "طماطم", t: [20, 30], ph: [5.5, 7.0] }, { n: "خيار", t: [22, 32], ph: [6.0, 7.5] },
+    { n: "فلفل", t: [20, 28], ph: [6.0, 7.0] }, { n: "باذنجان", t: [24, 32], ph: [5.5, 6.5] },
+    { n: "خس", t: [15, 22], ph: [6.0, 7.0] }, { n: "جرجير", t: [10, 25], ph: [6.5, 7.5] },
+    { n: "فراولة", t: [18, 25], ph: [5.5, 6.5] }, { n: "نعناع", t: [15, 30], ph: [6.0, 7.5] },
+    { n: "بطاطس", t: [15, 20], ph: [4.8, 6.0] }, { n: "جزر", t: [15, 21], ph: [5.5, 7.0] },
+    { n: "بصل", t: [12, 25], ph: [6.0, 7.5] }, { n: "ثوم", t: [10, 24], ph: [6.0, 7.0] },
+    { n: "سبانخ", t: [10, 20], ph: [6.5, 7.5] }, { n: "بقدونس", t: [15, 25], ph: [6.0, 7.0] },
+    { n: "كزبرة", t: [15, 22], ph: [6.5, 7.5] }, { n: "ريحان", t: [20, 35], ph: [5.5, 6.5] },
+    { n: "فاصوليا", t: [18, 28], ph: [6.0, 7.0] }, { n: "بازلاء", t: [13, 18], ph: [6.0, 7.5] },
+    { n: "ذرة", t: [18, 30], ph: [5.8, 7.0] }, { n: "قمح", t: [10, 25], ph: [6.0, 7.0] },
+    { n: "أرز", t: [20, 35], ph: [5.0, 6.5] }, { n: "قطن", t: [25, 35], ph: [5.5, 7.5] },
+    { n: "عباد الشمس", t: [20, 30], ph: [6.0, 7.5] }, { n: "فول سوداني", t: [22, 30], ph: [5.8, 6.2] },
+    { n: "كرنب", t: [15, 20], ph: [6.5, 7.5] }, { n: "قرنبيط", t: [15, 20], ph: [6.0, 7.0] },
+    { n: "بروكلي", t: [13, 20], ph: [6.0, 7.0] }, { n: "فجل", t: [10, 20], ph: [6.0, 7.0] },
+    { n: "لفت", t: [10, 20], ph: [5.5, 7.0] }, { n: "بنجر", t: [15, 21], ph: [6.0, 7.5] },
+    { n: "كوسة", t: [18, 30], ph: [6.0, 7.5] }, { n: "بطيخ", t: [22, 35], ph: [6.0, 7.0] },
+    { n: "شمام", t: [22, 32], ph: [6.0, 7.0] }, { n: "عنب", t: [15, 30], ph: [5.5, 7.0] },
+    { n: "تين", t: [20, 35], ph: [6.0, 7.5] }, { n: "زيتون", t: [15, 30], ph: [6.5, 8.5] },
+    { n: "رمان", t: [20, 35], ph: [5.5, 7.0] }, { n: "ليمون", t: [15, 30], ph: [5.5, 6.5] },
+    { n: "برتقال", t: [15, 30], ph: [6.0, 7.0] }, { n: "مانجو", t: [24, 30], ph: [5.5, 7.5] },
+    { n: "موز", t: [26, 30], ph: [5.5, 6.5] }, { n: "نخيل", t: [20, 40], ph: [6.0, 8.0] },
+    { n: "صبار", t: [15, 45], ph: [5.0, 6.5] }, { n: "ياسمين", t: [15, 30], ph: [6.0, 7.0] },
+    { n: "ورد بلدي", t: [15, 25], ph: [6.0, 7.0] }, { n: "توليب", t: [5, 15], ph: [6.0, 7.0] },
+    { n: "أوركيد", t: [18, 25], ph: [5.5, 6.5] }, { n: "قرنفل", t: [10, 20], ph: [6.0, 7.0] },
+    { n: "لافندر", t: [15, 30], ph: [6.5, 8.0] }, { n: "زعتر", t: [15, 25], ph: [6.0, 8.0] },
+    { n: "روزماري", t: [15, 25], ph: [6.0, 7.5] }, { n: "مرمية", t: [15, 25], ph: [6.0, 7.0] },
+    { n: "زعفران", t: [10, 20], ph: [6.0, 8.0] }, { n: "كمون", t: [20, 30], ph: [6.5, 7.5] },
+    { n: "يانسون", t: [15, 25], ph: [6.0, 7.5] }, { n: "شمر", t: [15, 25], ph: [6.0, 7.0] },
+    { n: "حلبة", t: [10, 25], ph: [6.0, 7.5] }, { n: "ترمس", t: [10, 20], ph: [6.0, 7.5] },
+    { n: "عدس", t: [15, 25], ph: [6.0, 7.5] }, { n: "حمص", t: [15, 25], ph: [6.0, 7.0] },
+    { n: "كرفس", t: [15, 21], ph: [6.0, 7.0] }, { n: "كرات", t: [15, 25], ph: [6.0, 7.0] },
+    { n: "فجل أحمر", t: [10, 20], ph: [6.0, 7.0] }, { n: "خرشوف", t: [15, 24], ph: [6.5, 7.5] }, 
+    { n: "هليون", t: [15, 25], ph: [6.5, 7.5] }, { n: "زنجبيل", t: [20, 30], ph: [5.5, 6.5] }, 
+    { n: "كركم", t: [20, 30], ph: [5.5, 6.5] }, { n: "قرفة", t: [25, 30], ph: [4.5, 5.5] }, 
+    { n: "كاكاو", t: [20, 30], ph: [5.0, 6.5] }, { n: "بن", t: [15, 25], ph: [5.0, 6.0] }, 
+    { n: "شاي", t: [13, 30], ph: [4.5, 5.5] }, { n: "تبغ", t: [20, 30], ph: [5.5, 6.5] }, 
+    { n: "قصب سكر", t: [20, 35], ph: [5.5, 6.5] }, { n: "بنجر سكر", t: [15, 25], ph: [6.0, 8.0] }, 
+    { n: "كاجو", t: [20, 30], ph: [5.0, 6.5] }, { n: "لوز", t: [15, 30], ph: [7.0, 8.5] }, 
+    { n: "فستق", t: [15, 35], ph: [7.0, 8.0] }, { n: "بندق", t: [12, 20], ph: [6.0, 7.0] }, 
+    { n: "جوز", t: [10, 25], ph: [6.0, 7.5] }, { n: "توت", t: [15, 25], ph: [5.5, 6.5] }, 
+    { n: "مشمش", t: [15, 30], ph: [6.0, 8.0] }, { n: "خوخ", t: [15, 25], ph: [6.0, 7.0] }, 
+    { n: "برقوق", t: [15, 25], ph: [6.0, 7.5] }, { n: "كرز", t: [10, 20], ph: [6.0, 7.5] }, 
+    { n: "تفاح", t: [10, 25], ph: [6.0, 7.5] }, { n: "كمثرى", t: [10, 25], ph: [6.0, 7.5] }, 
+    { n: "سفرجل", t: [15, 25], ph: [6.0, 7.5] }, { n: "جوافة", t: [20, 30], ph: [5.0, 7.0] }, 
+    { n: "قشطة", t: [20, 30], ph: [5.5, 6.5] }, { n: "أفوكادو", t: [15, 25], ph: [6.0, 7.0] }, 
+    { n: "بابايا", t: [20, 30], ph: [5.5, 6.5] }, { n: "أناناس", t: [20, 30], ph: [4.5, 5.5] }, 
+    { n: "جوز هند", t: [20, 35], ph: [5.0, 7.0] }, { n: "كيوي", t: [15, 25], ph: [5.5, 6.5] }, 
+    { n: "باشن فروت", t: [20, 30], ph: [5.5, 6.5] }, { n: "قلقاس", t: [20, 30], ph: [5.5, 6.5] }, 
+    { n: "بطاطا حلوة", t: [20, 30], ph: [5.5, 6.5] }, { n: "كرنب بروكسل", t: [15, 20], ph: [6.5, 7.5] }, 
+    { n: "كالي", t: [10, 20], ph: [6.5, 7.5] }
+];
 
-    <header class="main-header">
-        <div class="logo"><i class="fas fa-microchip"></i> بوابة المزرعة الذكية</div>
-        <div class="header-info">
-            <div id="liveClock" class="clock-text">--:--:--</div>
-            
-            <div id="userProfile" class="user-profile" style="display: none;">
-                <img id="userImg" src="" alt="user">
-                <div class="user-meta">
-                    <span id="userName"></span>
-                    <small id="savedIpTag" style="display:block; font-size:10px; color:#2ecc71;"></small>
-                </div>
-                <button onclick="logout()" class="logout-btn"><i class="fas fa-sign-out-alt"></i></button>
-            </div>
+// تشغيل النظام عند التحميل
+window.onload = () => {
+    populatePlants();
+    setInterval(updateClock, 1000);
+    getUserLocation();
+};
 
-            <button id="darkModeToggle" class="theme-toggle-btn" onclick="toggleDarkMode()">
-                <i class="fas fa-moon"></i>
-            </button>
-            <span id="ipStatus" class="status-tag offline">غير متصل</span>
-            <button class="nav-btn" onclick="toggleSettingsPage()">الإعدادات</button>
-        </div>
-    </header>
+function populatePlants() {
+    const sel = document.getElementById('plantSelector');
+    plants.forEach((p, index) => {
+        let o = document.createElement('option');
+        o.value = index; o.innerText = p.n;
+        sel.appendChild(o);
+    });
+}
 
-    <div id="loginAlert" class="login-overlay">
-        <div class="alert-content">
-            <div class="lock-icon-box">
-                <i class="fas fa-user-shield fa-3x"></i>
-            </div>
-            <h2>تأكيد الهوية مطلوب</h2>
-            <p>يجب تسجيل الدخول بحساب جوجل للوصول إلى نظام التحكم وحفظ إعدادات الـ IP الخاصة بك.</p>
-            
-            <div id="googleBtnWrapper" style="display: flex; justify-content: center; margin-top: 20px;">
-                <div id="googleBtn"></div>
-            </div>
-        </div>
-    </div>
+function updateClock() {
+    const now = new Date();
+    document.getElementById('headerDate').innerText = now.toLocaleDateString('ar-EG');
+    document.getElementById('headerTime').innerText = now.toLocaleTimeString('ar-EG');
+}
 
-    <main id="mainDashboard" class="dashboard-grid locked">
-        <section class="card">
-            <h3><i class="fas fa-broadcast-tower"></i> القراءات الحالية</h3>
-            <div class="sensor-grid">
-                <div class="s-card">pH التربة<br><span id="phVal">--</span></div>
-                <div class="s-card">الرطوبة<br><span id="moistVal">--</span>%</div>
-                <div class="s-card" id="rainBox">المطر<br><span id="rainStatus">جاف</span></div>
-            </div>
-        </section>
+// --- دوال الاتصال (بلوتوث، سيريال، واي فاي) ---
+async function connect(type) {
+    toggleMenu();
+    try {
+        if (type === 'Serial') {
+            if ("serial" in navigator) {
+                serialPort = await navigator.serial.requestPort();
+                await serialPort.open({ baudRate: 9600 });
+                readSerialData();
+                alert("تم الاتصال بالكابل");
+            } else alert("المتصفح لا يدعم Serial");
+        } 
+        else if (type === 'Bluetooth') {
+            bluetoothDevice = await navigator.bluetooth.requestDevice({ acceptAllDevices: true });
+            await bluetoothDevice.gatt.connect();
+            alert("تم الاتصال ببلوتوث: " + bluetoothDevice.name);
+        }
+        else if (type === 'IP') {
+            let ip = prompt("أدخل عنوان IP الجهاز:");
+            if(ip) fetch(`http://${ip}/data`).then(r => r.json()).then(d => updateUI(d));
+        }
+    } catch (e) { console.log("اتصال ملغي"); }
+}
 
-        <section class="card">
-            <h3><i class="fas fa-plug"></i> التحكم في المعدات</h3>
-            <div class="control-list">
-                <div class="ctrl-item"><span>المضخة 1</span><label class="switch"><input type="checkbox" id="swPump1" onchange="sendCmd('pump1')"><span class="slider"></span></label></div>
-                <div class="ctrl-item"><span>المضخة 2</span><label class="switch"><input type="checkbox" id="swPump2" onchange="sendCmd('pump2')"><span class="slider"></span></label></div>
-            </div>
-        </section>
+async function readSerialData() {
+    const reader = serialPort.readable.getReader();
+    while (true) {
+        const { value, done } = await reader.read();
+        if (done) break;
+        const data = new TextDecoder().decode(value).split(',');
+        if(data.length >= 4) updateUI(data);
+    }
+}
 
-        <section class="card wide">
-            <h3><i class="fas fa-seedling"></i> محلل المحاصيل الذكي (100+ نبتة)</h3>
-            <div class="analysis-flex">
-                <select id="plantSelect" onchange="runLiveAnalysis()"></select>
-                <div id="analysisResult" class="analysis-output">قم باختيار المحصول للمقارنة...</div>
-            </div>
-        </section>
-    </main>
+function updateUI(d) {
+    document.getElementById('temp').innerText = d[0];
+    document.getElementById('hum').innerText = d[1];
+    document.getElementById('ph').innerText = d[2];
+    document.getElementById('water').innerText = d[3];
+}
 
-    <script src="script.js"></script>
-</body>
-</html>
+// --- دوال جوجل (اختيارية) ---
+function googleSignIn() {
+    isLoggedIn = !isLoggedIn;
+    document.getElementById('userStatus').innerText = isLoggedIn ? "محمد" : "زائر";
+    document.getElementById('menuUserStatus').innerText = isLoggedIn ? "خروج" : "تسجيل الدخول";
+    if(isLoggedIn) alert("مرحباً بك! تم تفعيل المزامنة السحابية اختيارياً.");
+}
+
+// --- دوال التحكم والطقس ---
+function toggleMenu() { document.getElementById('sideMenu').classList.toggle('open'); }
+
+function toggleSystemMode() {
+    isAuto = !isAuto;
+    const btn = document.getElementById('systemModeBtn');
+    btn.className = isAuto ? "mode-toggle-btn auto" : "mode-toggle-btn manual";
+    document.getElementById('modeText').innerText = isAuto ? "أوتوماتيك" : "يدوي";
+    document.getElementById('manualControls').style.opacity = isAuto ? "0.3" : "1";
+}
+
+function toggleDevice(id) {
+    if(isAuto) return;
+    document.getElementById(id + 'Btn').classList.toggle('btn-on');
+}
+
+function updatePlantAnalysis() {
+    const p = plants[document.getElementById('plantSelector').value];
+    document.getElementById('plantAnalysis').innerHTML = `<b>${p.n}</b><br>حرارة: ${p.t[0]}-${p.t[1]}° | الحموضة: ${p.ph[0]}-${p.ph[1]}`;
+}
+
+function getUserLocation() {
+    if (navigator.geolocation) {
+        navigator.geolocation.getCurrentPosition(p => {
+            fetch(`https://api.openweathermap.org/data/2.5/weather?lat=${p.coords.latitude}&lon=${p.coords.longitude}&units=metric&lang=ar&appid=${API_KEY}`)
+            .then(r => r.json()).then(d => {
+                document.getElementById('weatherDisplay').innerText = `${d.name}: ${Math.round(d.main.temp)}°م - ${d.weather[0].description}`;
+            });
+        });
+    }
+}
+
+function toggleDarkMode() {
+    const b = document.body;
+    b.setAttribute('data-theme', b.getAttribute('data-theme') === 'dark' ? 'light' : 'dark');
+}
