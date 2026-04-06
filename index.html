@@ -1,0 +1,90 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <title>Smart Farm OS | GPS & Multi-ESP</title>
+    <link rel="stylesheet" href="style.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+</head>
+<body>
+
+    <div id="ipSettingsPage" class="full-page-overlay">
+        <div class="settings-card">
+            <button class="close-btn" onclick="toggleSettingsPage()">×</button>
+            <h2><i class="fas fa-microchip"></i> إعدادات جهاز الـ ESP</h2>
+            <div id="deviceInfo">يرجى إدخال IP الجهاز للبدء..</div>
+            <input type="text" id="espIP" placeholder="مثال: 192.168.1.100">
+            <button class="btn-confirm" onclick="saveESPConfig()">تأكيد وربط الجهاز</button>
+        </div>
+    </div>
+
+    <header class="main-header">
+        <div class="logo"><i class="fas fa-leaf"></i> إدارة الصوبة | نظام المواقع الذكي</div>
+        <div class="header-tools">
+            <span id="ipStatus" class="status-tag offline">الجهاز: غير متصل</span>
+            <button class="nav-btn" onclick="toggleSettingsPage()"><i class="fas fa-network-wired"></i> إعدادات الـ IP</button>
+        </div>
+    </header>
+
+    <main class="dashboard-grid">
+        
+        <section class="card wide weather-section">
+            <div class="flex-row">
+                <div class="gps-control">
+                    <h3><i class="fas fa-map-marked-alt"></i> تحديد موقع الصوبة</h3>
+                    <div id="mapContainer" class="map-placeholder" onclick="openMapPicker()">
+                        <i class="fas fa-search-location"></i>
+                        <p>اضغط لفتح الخريطة وتحديد مكان الصوبة</p>
+                    </div>
+                    <div class="coords-display">
+                        <span>Lat: <b id="latDisplay">--</b></span> | 
+                        <span>Lon: <b id="lonDisplay">--</b></span>
+                    </div>
+                </div>
+                <div class="weather-display">
+                    <h3><i class="fas fa-cloud-sun"></i> حالة المناخ المصري في منطقتك</h3>
+                    <div id="egyptWeatherOutput">بانتظار تحديد الموقع الجغرافي..</div>
+                </div>
+            </div>
+        </section>
+
+        <section class="card">
+            <h3><i class="fas fa-vial"></i> تحليل التربة (ESP)</h3>
+            <div class="sensor-display">
+                <div class="s-unit">الـ pH <br><span id="phVal">--</span></div>
+                <div class="s-unit">الرطوبة <br><span id="moistVal">--</span>%</div>
+            </div>
+            <select id="plantChoice" onchange="runAnalysis()" style="margin-top:15px;">
+                <option value="">-- اختر المحصول (FAO) --</option>
+                <option value='{"n":"القمح","phL":6,"phH":7,"m":55}'>القمح</option>
+                <option value='{"n":"الطماطم","phL":5.5,"phH":6.8,"m":70}'>الطماطم</option>
+            </select>
+            <div id="analysisBox" class="analysis-result">انتظار البيانات...</div>
+        </section>
+
+        <section class="card">
+            <h3><i class="fas fa-tools"></i> التحكم ونظام الحريق</h3>
+            <div class="control-grid">
+                <div class="ctrl-row"><span>الإضاءة</span> <label class="switch"><input type="checkbox" id="swLight" onchange="sendCmd('light')"><span class="slider"></span></label></div>
+                <div class="ctrl-row"><span>المضخة</span> <label class="switch"><input type="checkbox" id="swPump" onchange="sendCmd('pump')"><span class="slider"></span></label></div>
+                <div class="ctrl-row"><span>الباب</span> <label class="switch"><input type="checkbox" id="swDoor" onchange="sendCmd('servo')"><span class="slider"></span></label></div>
+            </div>
+            <div id="fireAlert" class="fire-box safe">نظام الحريق: مستقر</div>
+        </section>
+
+        <section class="card wide">
+            <h3><i class="fas fa-history"></i> سجل حضور ودخول الصوبة</h3>
+            <div class="log-container">
+                <table class="attendance-table">
+                    <thead>
+                        <tr><th>الاسم</th><th>الرقم (UID)</th><th>الوسيلة</th><th>الوقت</th></tr>
+                    </thead>
+                    <tbody id="attendanceBody"></tbody>
+                </table>
+            </div>
+        </section>
+    </main>
+
+    <script src="script.js"></script>
+</body>
+</html>
